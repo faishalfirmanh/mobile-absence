@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -29,6 +30,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.absen_android.network.RetrofitClient
 import com.example.absen_android.screen.HomeScreen
+import com.example.absen_android.screen.IzinScreen
 import com.example.absen_android.screen.LoginScreen
 import com.example.absen_android.screen.SplashScreen
 import com.example.absen_android.screen.LogoutScreen
@@ -39,6 +41,8 @@ object Routes {
     const val LOGIN = "login"
     const val HOME = "home"
     const val LOGOUT = "logout"
+
+    const val IZIN   = "izin"
 }
 
 data class BottomNavItem(
@@ -49,16 +53,18 @@ data class BottomNavItem(
 
 val bottomNavItems = listOf(
     BottomNavItem("Home", Icons.Filled.Home, Routes.HOME),
-    BottomNavItem("Logout", Icons.Filled.ExitToApp, Routes.LOGOUT)
+    BottomNavItem("Logout", Icons.Filled.ExitToApp, Routes.LOGOUT),
+    BottomNavItem("Izin",   Icons.Filled.Description, Routes.IZIN),
 )
 
+val bottomNavRoutes = bottomNavItems.map { it.route }
 @Composable
 fun AppNavigation() {
     val context = LocalContext.current
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.LOGOUT)
+    val showBottomBar = currentRoute in bottomNavRoutes
 
     Scaffold(
         bottomBar = {
@@ -76,12 +82,7 @@ fun AppNavigation() {
                                     restoreState = true
                                 }
                             },
-                            icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.label
-                                )
-                            },
+                            icon = { Icon(item.icon, contentDescription = item.label) },
                             label = { Text(item.label) }
                         )
                     }
@@ -94,7 +95,6 @@ fun AppNavigation() {
             startDestination = Routes.SPLASH,
             modifier = Modifier.padding(innerPadding)
         ) {
-            // Splash - check session
             composable(Routes.SPLASH) {
                 SplashScreen(
                     onSessionValid = {
@@ -122,6 +122,10 @@ fun AppNavigation() {
 
             composable(Routes.HOME) {
                 HomeScreen()
+            }
+
+            composable(Routes.IZIN) {
+                IzinScreen()
             }
 
             composable(Routes.LOGOUT) {

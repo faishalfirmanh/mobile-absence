@@ -71,7 +71,7 @@ fun SplashScreen(
             color = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = "Al-Hidayah",
+            text = "An-Namiroh",
             fontSize = 18.sp,
             color = MaterialTheme.colorScheme.secondary
         )
