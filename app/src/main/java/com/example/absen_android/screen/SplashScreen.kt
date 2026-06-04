@@ -40,15 +40,20 @@ fun SplashScreen(
 
         try {
             val httpResponse = RetrofitClient.instance.validateToken("Bearer $token")
-            if (httpResponse.isSuccessful && httpResponse.body()?.success == true) {
+            if (httpResponse.isSuccessful) {
+                // Jika token valid (HTTP 200), lanjut ke Home
                 onSessionValid()
             } else {
-                SessionManager.clearSession(context)
+                // Hanya hapus sesi jika token memang tidak valid (e.g., 401 Unauthorized)
+                if (httpResponse.code() == 401) {
+                    SessionManager.clearSession(context)
+                }
                 onSessionInvalid()
             }
         } catch (e: Exception) {
-            SessionManager.clearSession(context)
-            onSessionInvalid()
+            // Jika terjadi error jaringan/server, tetap izinkan ke Home 
+            // agar user tidak terlempar keluar saat offline (jika sudah punya token)
+            onSessionValid()
         }
     }
 

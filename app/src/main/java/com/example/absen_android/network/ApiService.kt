@@ -161,7 +161,7 @@ interface ApiService {
         @Part("android_version") androidVersion: RequestBody,
         @Part("app_version") appVersion: RequestBody,
         @Part("gps_accuracy") gpsAccuracy: RequestBody,
-        @Part photo: MultipartBody.Part?
+//        @Part photo: MultipartBody.Part?
     ): Response<AttendanceResponse>
 
     @Multipart
