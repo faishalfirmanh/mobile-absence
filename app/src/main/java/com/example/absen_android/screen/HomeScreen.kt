@@ -1,7 +1,6 @@
 package com.example.absen_android.screen
 
 import android.Manifest
-import android.content.Context
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,7 +54,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.example.absen_android.network.AttendanceResponse
 import com.example.absen_android.network.RetrofitClient
 import com.example.absen_android.utils.DeviceLocation
 import com.example.absen_android.utils.DeviceUtils
@@ -192,7 +190,6 @@ fun HomeScreen() {
                     androidVersion = androidVersion.rb(),
                     appVersion     = appVersion.rb(),
                     gpsAccuracy    = location!!.accuracy.toString().rb()
-//                    photo          = photoPart
                 )
 
                 if (res.isSuccessful) {

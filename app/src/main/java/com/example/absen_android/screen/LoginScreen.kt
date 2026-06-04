@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -49,155 +50,139 @@ import com.example.absen_android.utils.SessionManager
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit = {}) {
-    val context = LocalContext.current
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+fun LoginScreen(
+    onLoginSuccess: () -> Unit = {},
+    tokenExpiredMessage: String? = null   // shown when redirected from expired token
+) {
+    val context  = LocalContext.current
+    val scope    = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+
+    var username        by remember { mutableStateOf("") }
+    var password        by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+    var isLoading       by remember { mutableStateOf(false) }
+    var errorMessage    by remember { mutableStateOf("") }
 
-    val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    // Show token expired snackbar on first composition if message is provided
+    if (tokenExpiredMessage != null) {
+        androidx.compose.runtime.LaunchedEffect(tokenExpiredMessage) {
+            snackbar.showSnackbar(
+                message  = tokenExpiredMessage,
+                duration = SnackbarDuration.Long
+            )
+        }
+    }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
+    Scaffold(snackbarHost = { SnackbarHost(snackbar) }) { padding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentAlignment = Alignment.Center
+            modifier          = Modifier.fillMaxSize().padding(padding),
+            contentAlignment  = Alignment.Center
         ) {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                shape = RoundedCornerShape(16.dp),
+                modifier  = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                shape     = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    modifier               = Modifier.padding(24.dp),
+                    horizontalAlignment    = Alignment.CenterHorizontally,
+                    verticalArrangement    = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Selamat Datang",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Silakan login untuk melanjutkan",
-                        fontSize = 14.sp,
-                        color = Color.Gray
-                    )
+                    Text("Selamat Datang", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text("Silakan login untuk melanjutkan", fontSize = 14.sp, color = Color.Gray)
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
+                    // Username
                     OutlinedTextField(
-                        value = username,
+                        value         = username,
                         onValueChange = { username = it; errorMessage = "" },
-                        label = { Text("Username") },
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Filled.Person, contentDescription = null)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        label         = { Text("Username") },
+                        leadingIcon   = { Icon(Icons.Filled.Person, null) },
+                        singleLine    = true,
+                        modifier      = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        isError = errorMessage.isNotEmpty()
+                        isError       = errorMessage.isNotEmpty()
                     )
 
+                    // Password
                     OutlinedTextField(
-                        value = password,
+                        value         = password,
                         onValueChange = { password = it; errorMessage = "" },
-                        label = { Text("Password") },
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Filled.Lock, contentDescription = null)
-                        },
-                        trailingIcon = {
+                        label         = { Text("Password") },
+                        leadingIcon   = { Icon(Icons.Filled.Lock, null) },
+                        trailingIcon  = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
-                                    imageVector = if (passwordVisible)
-                                        Icons.Filled.VisibilityOff
-                                    else
-                                        Icons.Filled.Visibility,
-                                    contentDescription = null
+                                    if (passwordVisible) Icons.Filled.VisibilityOff
+                                    else Icons.Filled.Visibility,
+                                    null
                                 )
                             }
                         },
-                        singleLine = true,
-                        visualTransformation = if (passwordVisible)
-                            VisualTransformation.None
-                        else
-                            PasswordVisualTransformation(),
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        isError = errorMessage.isNotEmpty()
+                        singleLine          = true,
+                        visualTransformation = if (passwordVisible) VisualTransformation.None
+                                              else PasswordVisualTransformation(),
+                        modifier            = Modifier.fillMaxWidth(),
+                        keyboardOptions     = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        isError             = errorMessage.isNotEmpty()
                     )
 
+                    // Error message
                     if (errorMessage.isNotEmpty()) {
                         Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
+                            text     = errorMessage,
+                            color    = MaterialTheme.colorScheme.error,
                             fontSize = 13.sp
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
+                    // Login button
                     Button(
-                        onClick = {
+                        onClick  = {
                             if (username.isBlank() || password.isBlank()) {
                                 errorMessage = "Username dan password tidak boleh kosong"
                                 return@Button
                             }
                             scope.launch {
-                                isLoading = true
+                                isLoading    = true
                                 errorMessage = ""
                                 try {
-                                    val httpResponse = RetrofitClient.instance.login(
-                                        username,
-                                        password
-                                    )
-                                    val body = httpResponse.body()
-                                    if (httpResponse.isSuccessful &&
+                                    val httpRes = RetrofitClient.instance.login(username, password)
+                                    val body    = httpRes.body()
+
+                                    if (httpRes.isSuccessful &&
                                         body?.success == true &&
                                         body.token != null
                                     ) {
-                                        SessionManager.saveSession(
-                                            context = context,
-                                            token = body.token,
-                                            fullname = body.user?.fullname ?: "",
-                                            role = body.user?.role ?: "",
-                                            userId = body.user?.id ?: 0
-                                        )
+                                        // ── Save full response to file ────────
+                                        SessionManager.saveSession(context, body)
                                         onLoginSuccess()
                                     } else {
                                         errorMessage = body?.message ?: "Login gagal"
                                     }
                                 } catch (e: Exception) {
-                                    errorMessage = "Gagal terhubung ke server: ${e.localizedMessage}"
+                                    errorMessage = "Gagal terhubung: ${e.localizedMessage}"
                                 } finally {
                                     isLoading = false
                                 }
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        enabled = !isLoading
+                        modifier = Modifier.fillMaxWidth().height(50.dp),
+                        shape    = RoundedCornerShape(10.dp),
+                        enabled  = !isLoading
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
+                                modifier    = Modifier.size(20.dp),
+                                color       = Color.White,
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text(
-                                text = "Login",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Text("Login", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

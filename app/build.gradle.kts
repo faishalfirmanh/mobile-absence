@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.absen_android"
-        minSdk = 24
+        minSdk = 26
         versionCode = 1
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -61,6 +61,9 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.4")
     implementation("androidx.camera:camera-lifecycle:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
+    implementation("org.apache.poi:poi:5.2.3")
+    implementation("org.apache.poi:poi-ooxml:5.2.3")
+    implementation("dev.shreyaspatil:capturable:2.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

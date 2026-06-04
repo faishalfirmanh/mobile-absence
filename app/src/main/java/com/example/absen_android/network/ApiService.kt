@@ -39,6 +39,25 @@ data class LoginResponse(
     val token_type: String? = null
 )
 
+// ── Get User (validate token) ─────────────────────────────────────────────────
+data class GetUserData(
+    val id: Int,
+    val username: String? = null,
+    val fullname: String,
+    val role: String,
+    val username_machine: String,
+    val is_login_device: Int? = null,
+    val location: Int? = null,
+    val location_name: String? = null,
+    val get_location: UserLokasi? = null
+)
+
+data class GetUserResponse(
+    val status: Boolean,
+    val message: String,
+    val data: GetUserData? = null
+)
+
 // ── Validate Token ────────────────────────────────────────────────────────────
 data class ValidateTokenResponse(
     val success: Boolean,
@@ -132,6 +151,40 @@ data class UpdateIzinResponse(
     val data: IzinData? = null
 )
 
+data class SavePasswordResponse(
+    val success: Boolean,
+    val message: String
+)
+
+// ── Reports ──────────────────────────────────────────────────────────────────
+data class ReportItem(
+    val id_user: Any?, // Can be String or Int from API
+    val nama_karyawan: String,
+    val hadir_mesin: Int,
+    val total_jam_masuk: Any?, // Can be Int or String
+    val tidak_hadir_mesin: Int?,
+    val sakit: Int,
+    val izin: Int,
+    val cuti: Int,
+    val total_masuk_kurangi_izin: Int,
+    val total_tidak_masuk: Int,
+    val hari_efektif: Int
+)
+
+data class MonthlyReportResponse(
+    val success: Boolean,
+    val message: String,
+    val periode: String?,
+    val data: List<ReportItem>?
+)
+
+data class YearlyReportResponse(
+    val success: Boolean,
+    val message: String,
+    val periode: String?,
+    val data: List<ReportItem>?
+)
+
 // ── API Interface ─────────────────────────────────────────────────────────────
 interface ApiService {
 
@@ -141,6 +194,12 @@ interface ApiService {
         @Field("username_machine") username_machine: String,
         @Field("password_machine") password_machine: String
     ): Response<LoginResponse>
+
+    // Validate token & get fresh user data
+    @GET("get_user")
+    suspend fun getUser(
+        @Header("Authorization") token: String
+    ): Response<GetUserResponse>
 
     @GET("user")
     suspend fun validateToken(
@@ -160,8 +219,7 @@ interface ApiService {
         @Part("device_brand") deviceBrand: RequestBody,
         @Part("android_version") androidVersion: RequestBody,
         @Part("app_version") appVersion: RequestBody,
-        @Part("gps_accuracy") gpsAccuracy: RequestBody,
-//        @Part photo: MultipartBody.Part?
+        @Part("gps_accuracy") gpsAccuracy: RequestBody
     ): Response<AttendanceResponse>
 
     @Multipart
@@ -197,4 +255,25 @@ interface ApiService {
         @Field("id") id: Int,
         @Field("status") status: String
     ): Response<UpdateIzinResponse>
+
+    @FormUrlEncoded
+    @POST("save_new_password")
+    suspend fun saveNewPassword(
+        @Header("Authorization") token: String,
+        @Field("old_password") oldPass: String,
+        @Field("new_password") newPass: String
+    ): Response<SavePasswordResponse>
+
+    @GET("report_bulan")
+    suspend fun getMonthlyReport(
+        @Header("Authorization") token: String,
+        @Query("month") month: String,
+        @Query("year") year: String
+    ): Response<MonthlyReportResponse>
+
+    @GET("report_tahun")
+    suspend fun getYearlyReport(
+        @Header("Authorization") token: String,
+        @Query("year") year: String
+    ): Response<YearlyReportResponse>
 }

@@ -25,58 +25,74 @@ import com.example.absen_android.utils.SessionManager
 
 @Composable
 fun SplashScreen(
-    onSessionValid: () -> Unit,
-    onSessionInvalid: () -> Unit
+    onSessionValid:   () -> Unit,
+    onSessionInvalid: (tokenExpired: Boolean) -> Unit
 ) {
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        val token = SessionManager.getToken(context)
-
-        if (token == null) {
-            onSessionInvalid()
+        // ── Step 1: Check if session file exists ──────────────────────────────
+        if (!SessionManager.hasSession(context)) {
+            // No file → go to login
+            onSessionInvalid(false)
             return@LaunchedEffect
         }
 
+        // ── Step 2: File exists → get token ───────────────────────────────────
+        val token = SessionManager.getToken(context)
+        if (token == null) {
+            SessionManager.clearSession(context)
+            onSessionInvalid(false)
+            return@LaunchedEffect
+        }
+
+        // ── Step 3: Hit GET /get_user to validate token ───────────────────────
         try {
-            val httpResponse = RetrofitClient.instance.validateToken("Bearer $token")
-            if (httpResponse.isSuccessful) {
-                // Jika token valid (HTTP 200), lanjut ke Home
-                onSessionValid()
-            } else {
-                // Hanya hapus sesi jika token memang tidak valid (e.g., 401 Unauthorized)
-                if (httpResponse.code() == 401) {
-                    SessionManager.clearSession(context)
+            val response = RetrofitClient.instance.validateToken("Bearer $token")
+            when {
+                response.isSuccessful && response.body()?.success == true -> {
+                    // Token valid → go to Home
+                    onSessionValid()
                 }
-                onSessionInvalid()
+                response.code() == 401 -> {
+                    // Token expired
+                    SessionManager.clearSession(context)
+                    onSessionInvalid(true)   // true = show "token expired" message
+                }
+                else -> {
+                    // Other error — clear and go to login
+                    SessionManager.clearSession(context)
+                    onSessionInvalid(false)
+                }
             }
         } catch (e: Exception) {
-            // Jika terjadi error jaringan/server, tetap izinkan ke Home 
-            // agar user tidak terlempar keluar saat offline (jika sudah punya token)
-            onSessionValid()
+            // Network error — still go to login safely
+            SessionManager.clearSession(context)
+            onSessionInvalid(false)
         }
     }
 
+    // ── Splash UI ─────────────────────────────────────────────────────────────
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier            = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector = Icons.Filled.AccessTime,
+            imageVector  = Icons.Filled.AccessTime,
             contentDescription = null,
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.primary
+            modifier     = Modifier.size(80.dp),
+            tint         = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Absensi",
-            fontSize = 28.sp,
+            text       = "Absensi",
+            fontSize   = 28.sp,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
+            color      = MaterialTheme.colorScheme.primary
         )
         Text(
-            text = "An-Namiroh",
+            text  = "Al-Hidayah",
             fontSize = 18.sp,
             color = MaterialTheme.colorScheme.secondary
         )
@@ -84,9 +100,9 @@ fun SplashScreen(
         CircularProgressIndicator()
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Memeriksa sesi...",
+            text     = "Memeriksa sesi...",
             fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color    = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

@@ -1,34 +1,69 @@
 package com.example.absen_android.utils
 
 import android.content.Context
-import android.content.SharedPreferences
+import com.example.absen_android.network.LoginResponse
+import com.google.gson.Gson
+import java.io.File
 
 object SessionManager {
-    private const val PREF_NAME  = "absen_session"
-    private const val KEY_TOKEN    = "token"
-    private const val KEY_FULLNAME = "fullname"
-    private const val KEY_ROLE     = "role"
-    private const val KEY_USER_ID  = "user_id"
 
-    private fun prefs(context: Context): SharedPreferences =
-        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+    private const val SESSION_FILE = "session.json"
+    private val gson = Gson()
 
-    fun saveSession(context: Context, token: String, fullname: String, role: String, userId: Int) {
-        prefs(context).edit()
-            .putString(KEY_TOKEN, token)
-            .putString(KEY_FULLNAME, fullname)
-            .putString(KEY_ROLE, role)
-            .putInt(KEY_USER_ID, userId)
-            .apply()
+    // ── File path ─────────────────────────────────────────────────────────────
+    private fun sessionFile(context: Context): File =
+        File(context.filesDir, SESSION_FILE)
+
+    // ── Save full login response to file ──────────────────────────────────────
+    fun saveSession(context: Context, response: LoginResponse) {
+        try {
+            val json = gson.toJson(response)
+            sessionFile(context).writeText(json)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
-    fun getToken(context: Context): String?    = prefs(context).getString(KEY_TOKEN, null)
-    fun getFullname(context: Context): String  = prefs(context).getString(KEY_FULLNAME, "") ?: ""
-    fun getRole(context: Context): String      = prefs(context).getString(KEY_ROLE, "") ?: ""
-    fun getUserId(context: Context): Int       = prefs(context).getInt(KEY_USER_ID, 0)
-    fun isHrd(context: Context): Boolean       = getRole(context).equals("HRD", ignoreCase = true)
+    // ── Read session from file ────────────────────────────────────────────────
+    fun getSession(context: Context): LoginResponse? {
+        return try {
+            val file = sessionFile(context)
+            if (!file.exists()) return null
+            val json = file.readText()
+            gson.fromJson(json, LoginResponse::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
 
+    // ── Check if session file exists ──────────────────────────────────────────
+    fun hasSession(context: Context): Boolean =
+        sessionFile(context).exists()
+
+    // ── Get token from saved session ──────────────────────────────────────────
+    fun getToken(context: Context): String? =
+        getSession(context)?.token
+
+    // ── Get user data ─────────────────────────────────────────────────────────
+    fun getFullname(context: Context): String =
+        getSession(context)?.user?.fullname ?: ""
+
+    fun getRole(context: Context): String =
+        getSession(context)?.user?.role ?: ""
+
+    fun getUserId(context: Context): Int =
+        getSession(context)?.user?.id ?: 0
+
+    fun isHrd(context: Context): Boolean =
+        getRole(context).equals("HRD", ignoreCase = true)
+
+    // ── Delete session file on logout ─────────────────────────────────────────
     fun clearSession(context: Context) {
-        prefs(context).edit().clear().apply()
+        try {
+            val file = sessionFile(context)
+            if (file.exists()) file.delete()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 }
