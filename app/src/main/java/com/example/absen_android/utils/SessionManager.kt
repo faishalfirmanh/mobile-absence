@@ -1,50 +1,50 @@
 package com.example.absen_android.utils
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.example.absen_android.network.LoginResponse
 import com.google.gson.Gson
-import java.io.File
 
 object SessionManager {
 
-    private const val SESSION_FILE = "session.json"
+    private const val PREF_NAME  = "AbsenSessionPrefs"
+    private const val KEY_SESSION = "session_data"
     private val gson = Gson()
 
-    // ── File path ─────────────────────────────────────────────────────────────
-    private fun sessionFile(context: Context): File =
-        File(context.filesDir, SESSION_FILE)
+    // ── SharedPreferences (MODE_PRIVATE = persists across app restart) ────────
+    private fun getPreferences(context: Context): SharedPreferences =
+        context.applicationContext                        // ← pakai applicationContext
+            .getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
-    // ── Save full login response to file ──────────────────────────────────────
+    // ── Simpan sesi setelah login ─────────────────────────────────────────────
     fun saveSession(context: Context, response: LoginResponse) {
         try {
             val json = gson.toJson(response)
-            sessionFile(context).writeText(json)
+            getPreferences(context).edit().putString(KEY_SESSION, json).apply()
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    // ── Read session from file ────────────────────────────────────────────────
+    // ── Baca sesi ─────────────────────────────────────────────────────────────
     fun getSession(context: Context): LoginResponse? {
         return try {
-            val file = sessionFile(context)
-            if (!file.exists()) return null
-            val json = file.readText()
+            val json = getPreferences(context).getString(KEY_SESSION, null)
+                ?: return null
             gson.fromJson(json, LoginResponse::class.java)
         } catch (e: Exception) {
             null
         }
     }
 
-    // ── Check if session file exists ──────────────────────────────────────────
+    // ── Cek apakah sesi tersimpan ─────────────────────────────────────────────
     fun hasSession(context: Context): Boolean =
-        sessionFile(context).exists()
+        getPreferences(context).contains(KEY_SESSION)
 
-    // ── Get token from saved session ──────────────────────────────────────────
+    // ── Getter spesifik ───────────────────────────────────────────────────────
     fun getToken(context: Context): String? =
         getSession(context)?.token
 
-    // ── Get user data ─────────────────────────────────────────────────────────
     fun getFullname(context: Context): String =
         getSession(context)?.user?.fullname ?: ""
 
@@ -57,11 +57,10 @@ object SessionManager {
     fun isHrd(context: Context): Boolean =
         getRole(context).equals("HRD", ignoreCase = true)
 
-    // ── Delete session file on logout ─────────────────────────────────────────
+    // ── Hapus sesi (hanya saat logout atau 401 dari server) ───────────────────
     fun clearSession(context: Context) {
         try {
-            val file = sessionFile(context)
-            if (file.exists()) file.delete()
+            getPreferences(context).edit().remove(KEY_SESSION).apply()
         } catch (e: Exception) {
             e.printStackTrace()
         }

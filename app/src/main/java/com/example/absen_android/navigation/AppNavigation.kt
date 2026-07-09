@@ -2,6 +2,7 @@ package com.example.absen_android.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.ExitToApp
@@ -24,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.absen_android.screen.HistoryAttendanceScreen
 import com.example.absen_android.screen.HomeScreen
 import com.example.absen_android.screen.IzinScreen
 import com.example.absen_android.screen.LoginScreen
@@ -35,13 +37,14 @@ import com.example.absen_android.utils.SessionManager
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 object Routes {
-    const val SPLASH = "splash"
-    const val LOGIN  = "login?expired={expired}"
-    const val HOME   = "home"
-    const val IZIN   = "izin"
-    const val REPORT_MONTHLY = "report_monthly"
-    const val REPORT_YEAR = "report_year"
-    const val LOGOUT = "logout"
+    const val SPLASH             = "splash"
+    const val LOGIN              = "login?expired={expired}"
+    const val HOME               = "home"
+    const val IZIN               = "izin"
+    const val REPORT_MONTHLY     = "report_monthly"
+    const val HISTORY_ATTENDANCE = "history_attendance"
+    const val REPORT_YEAR        = "report_year"
+    const val LOGOUT             = "logout"
 
     fun loginRoute(expired: Boolean = false) = "login?expired=$expired"
 }
@@ -53,18 +56,22 @@ data class BottomNavItem(
     val route: String
 )
 
+// HRD: semua menu termasuk laporan bulanan & tahunan
 val bottomNavItems = listOf(
-    BottomNavItem("Home",   Icons.Filled.Home,        Routes.HOME),
-    BottomNavItem("Izin",   Icons.Filled.Description, Routes.IZIN),
-    BottomNavItem("Bulan",  Icons.Filled.DateRange,   Routes.REPORT_MONTHLY),
-    BottomNavItem("Tahun",  Icons.Filled.Summarize,   Routes.REPORT_YEAR),
-    BottomNavItem("Logout", Icons.Filled.ExitToApp,   Routes.LOGOUT)
+    BottomNavItem("Home",    Icons.Filled.Home,        Routes.HOME),
+    BottomNavItem("Izin",    Icons.Filled.Description, Routes.IZIN),
+    BottomNavItem("Riwayat", Icons.Filled.AccessTime,  Routes.HISTORY_ATTENDANCE), // ← BARU
+    BottomNavItem("Bulan",   Icons.Filled.DateRange,   Routes.REPORT_MONTHLY),
+    BottomNavItem("Tahun",   Icons.Filled.Summarize,   Routes.REPORT_YEAR),
+    BottomNavItem("Logout",  Icons.Filled.ExitToApp,   Routes.LOGOUT)
 )
 
+// User biasa: Home, Izin, Riwayat, Logout
 val commonNavItems = listOf(
-    BottomNavItem("Home",   Icons.Filled.Home,        Routes.HOME),
-    BottomNavItem("Izin",   Icons.Filled.Description, Routes.IZIN),
-    BottomNavItem("Logout", Icons.Filled.ExitToApp,   Routes.LOGOUT)
+    BottomNavItem("Home",    Icons.Filled.Home,        Routes.HOME),
+    BottomNavItem("Izin",    Icons.Filled.Description, Routes.IZIN),
+    BottomNavItem("Riwayat", Icons.Filled.AccessTime,  Routes.HISTORY_ATTENDANCE), // ← BARU
+    BottomNavItem("Logout",  Icons.Filled.ExitToApp,   Routes.LOGOUT)
 )
 
 val allNavRoutes = bottomNavItems.map { it.route }
@@ -72,13 +79,13 @@ val allNavRoutes = bottomNavItems.map { it.route }
 // ── App Navigation ────────────────────────────────────────────────────────────
 @Composable
 fun AppNavigation() {
-    val context      = LocalContext.current
+    val context       = LocalContext.current
     val navController = rememberNavController()
-    val navBackStack by navController.currentBackStackEntryAsState()
+    val navBackStack  by navController.currentBackStackEntryAsState()
     val currentRoute  = navBackStack?.destination?.route
-    val isHrd = SessionManager.isHrd(context)
+    val isHrd         = SessionManager.isHrd(context)
     val displayNavItems = if (isHrd) bottomNavItems else commonNavItems
-    val showBottomBar = allNavRoutes.any { currentRoute?.startsWith(it) == true }
+    val showBottomBar   = allNavRoutes.any { currentRoute?.startsWith(it) == true }
 
     Scaffold(
         bottomBar = {
@@ -135,12 +142,12 @@ fun AppNavigation() {
             ) { backStackEntry ->
                 val expired = backStackEntry.arguments?.getBoolean("expired") ?: false
                 LoginScreen(
-                    onLoginSuccess       = {
+                    onLoginSuccess      = {
                         navController.navigate(Routes.HOME) {
                             popUpTo(Routes.loginRoute()) { inclusive = true }
                         }
                     },
-                    tokenExpiredMessage  = if (expired) "Sesi telah berakhir, silakan login kembali" else null
+                    tokenExpiredMessage = if (expired) "Sesi telah berakhir, silakan login kembali" else null
                 )
             }
 
@@ -149,6 +156,9 @@ fun AppNavigation() {
 
             // ── Izin ──────────────────────────────────────────────────────────
             composable(Routes.IZIN)   { IzinScreen() }
+
+            // ── History Attendance ────────────────────────────────────────────
+            composable(Routes.HISTORY_ATTENDANCE) { HistoryAttendanceScreen() } // ← BARU
 
             // ── Report Monthly ────────────────────────────────────────────────
             composable(Routes.REPORT_MONTHLY) { ReportMonthlyScreen() }
@@ -160,7 +170,6 @@ fun AppNavigation() {
             composable(Routes.LOGOUT) {
                 LogoutScreen(
                     onLogoutConfirmed = {
-                        // Delete session file on logout
                         SessionManager.clearSession(context)
                         navController.navigate(Routes.loginRoute()) {
                             popUpTo(0) { inclusive = true }

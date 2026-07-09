@@ -31,44 +31,47 @@ fun SplashScreen(
     val context = LocalContext.current
 
     LaunchedEffect(Unit) {
-        // ── Step 1: Check if session file exists ──────────────────────────────
+
+        // ── Step 1: Tidak ada sesi sama sekali → ke Login ─────────────────────
         if (!SessionManager.hasSession(context)) {
-            // No file → go to login
             onSessionInvalid(false)
             return@LaunchedEffect
         }
 
-        // ── Step 2: File exists → get token ───────────────────────────────────
+        // ── Step 2: Sesi ada tapi token null → bersihkan & ke Login ──────────
         val token = SessionManager.getToken(context)
-        if (token == null) {
+        if (token.isNullOrBlank()) {
             SessionManager.clearSession(context)
             onSessionInvalid(false)
             return@LaunchedEffect
         }
 
-        // ── Step 3: Hit GET /get_user to validate token ───────────────────────
+        // ── Step 3: Validasi token ke server ──────────────────────────────────
         try {
             val response = RetrofitClient.instance.validateToken("Bearer $token")
             when {
+                // Token valid → langsung ke Home
                 response.isSuccessful && response.body()?.success == true -> {
-                    // Token valid → go to Home
                     onSessionValid()
                 }
+
+                // 401 = token benar-benar expired di server → hapus sesi, Login
                 response.code() == 401 -> {
-                    // Token expired
                     SessionManager.clearSession(context)
-                    onSessionInvalid(true)   // true = show "token expired" message
+                    onSessionInvalid(true)
                 }
+
+                // Error server lain (500, 503, dsb) → JANGAN hapus sesi,
+                // biarkan masuk dengan sesi yang masih ada
                 else -> {
-                    // Other error — clear and go to login
-                    SessionManager.clearSession(context)
-                    onSessionInvalid(false)
+                    onSessionValid()
                 }
             }
         } catch (e: Exception) {
-            // Network error — still go to login safely
-            SessionManager.clearSession(context)
-            onSessionInvalid(false)
+            // Tidak ada koneksi / timeout → JANGAN hapus sesi.
+            // User tetap bisa masuk dengan data sesi yang tersimpan.
+            // Sesi hanya dihapus jika server benar-benar bilang 401.
+            onSessionValid()
         }
     }
 
@@ -79,10 +82,10 @@ fun SplashScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            imageVector  = Icons.Filled.AccessTime,
+            imageVector        = Icons.Filled.AccessTime,
             contentDescription = null,
-            modifier     = Modifier.size(80.dp),
-            tint         = MaterialTheme.colorScheme.primary
+            modifier           = Modifier.size(80.dp),
+            tint               = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -92,9 +95,9 @@ fun SplashScreen(
             color      = MaterialTheme.colorScheme.primary
         )
         Text(
-            text  = "Al-Hidayah",
+            text     = "An-Namiroh Group",
             fontSize = 18.sp,
-            color = MaterialTheme.colorScheme.secondary
+            color    = MaterialTheme.colorScheme.secondary
         )
         Spacer(modifier = Modifier.height(32.dp))
         CircularProgressIndicator()

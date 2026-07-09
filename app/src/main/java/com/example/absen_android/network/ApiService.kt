@@ -10,6 +10,7 @@ import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -185,8 +186,50 @@ data class YearlyReportResponse(
     val data: List<ReportItem>?
 )
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// TAMBAHKAN KE FILE: ApiService.kt  (com.example.absen_android.network)
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── 1. DATA CLASS (tambahkan di bawah blok "// ── Reports" yang sudah ada) ──
+
+data class AttendanceDetailItem(
+    val attendance_id    : Int,
+    val employee_id      : Int,
+    val location_id      : Int,
+    val attendance_type  : String,   // "check_in" | "check_out"
+    val attendance_date  : String,   // ISO 8601 UTC
+    val attendance_time  : String,   // ISO 8601 UTC
+    val submitted_latitude : String,
+    val submitted_longitude: String,
+    val distance_meters  : String?,
+    val device_model     : String?,
+    val status           : String,   // "approved" | "pending" | "rejected"
+    val work_location    : UserLokasi?,   // reuse data class yang sudah ada
+    val employee         : GetUserData?   // reuse data class yang sudah ada
+)
+
+data class AttendanceDetailResponse(
+    val status  : Boolean,
+    val message : String,
+    val data    : List<AttendanceDetailItem>?
+)
+
+
+// ── 2. ENDPOINT (tambahkan di dalam interface ApiService, setelah getYearlyReport) ──
+
+// Endpoint ini TANPA Bearer Token, cukup pakai query param "key"
+
 // ── API Interface ─────────────────────────────────────────────────────────────
 interface ApiService {
+
+
+    @GET("detail-absen/{employee_id}")
+    suspend fun getAttendanceDetail(
+        @Path("employee_id") employeeId : Int,
+        @Query("key")        key        : String = "namiroh123"
+    ): Response<AttendanceDetailResponse>
+
 
     @FormUrlEncoded
     @POST("login")

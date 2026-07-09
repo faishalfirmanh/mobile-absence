@@ -119,8 +119,8 @@ fun HomeScreen() {
     val deviceBrand    = remember { DeviceUtils.getDeviceBrand() }
     val androidVersion = remember { DeviceUtils.getAndroidVersion() }
     val appVersion     = remember {
-        try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.0" }
-        catch (_: Exception) { "1.0" }
+        try { context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.5" }
+        catch (_: Exception) { "1.5" }
     }
     val fullname = remember { SessionManager.getFullname(context) }
     val role     = remember { SessionManager.getRole(context) }
